@@ -1,62 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'screens/dashboard_screen.dart';
-import 'providers/csv_data_provider.dart';
-import 'providers/app_settings.dart';
+import 'screens/home_screen.dart';
+import 'screens/settings_screen.dart';
+import 'providers/theme_provider.dart';
+import 'providers/tds_data_provider.dart';
 
 void main() {
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => CSVDataProvider()),
-        ChangeNotifierProvider(create: (_) => AppSettings()..load()),
-      ],
-      child: MyApp(),
-    ),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  static final ValueNotifier<ThemeMode> themeNotifier =
-      ValueNotifier(ThemeMode.system);
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Defer theme rebuilding to AppSettings to allow persisted seed color & mode
-    return Consumer<AppSettings>(
-      builder: (context, settings, _) {
-        // Keep ValueNotifier in sync so existing toggles continue to work
-        themeNotifier.value = settings.themeMode;
-        final Color seed = settings.seedColor;
-        final ThemeData light = ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light),
-          useMaterial3: true,
-          snackBarTheme: SnackBarThemeData(
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: seed.withOpacity(0.12),
-            contentTextStyle: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        );
-        final ThemeData dark = ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark),
-          useMaterial3: true,
-          snackBarTheme: SnackBarThemeData(
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.black87,
-            contentTextStyle: TextStyle(color: seed, fontWeight: FontWeight.w600),
-          ),
-          scaffoldBackgroundColor: Colors.black,
-          appBarTheme: const AppBarTheme(backgroundColor: Colors.black, foregroundColor: Colors.white),
-        );
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => TDSDataProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            title: 'grNINE - TDS Monitor',
+            theme: ThemeData(
+              brightness: Brightness.light,
+              primarySwatch: Colors.blue,
+              useMaterial3: true,
+            ),
+            darkTheme: ThemeData(
+              brightness: Brightness.dark,
+              primarySwatch: Colors.blue,
+              useMaterial3: true,
+            ),
+            themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            home: const MainScreen(),
+          );
+        },
+      ),
+    );
+  }
+}
 
-        return MaterialApp(
-          title: 'Soil Dashboard',
-          theme: light,
-          darkTheme: dark,
-          themeMode: settings.themeMode,
-          home: const DashboardScreen(),
-        );
-      },
+class MainScreen extends StatefulWidget {
+  const MainScreen({Key? key}) : super(key: key);
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = [
+      const HomeScreen(),
+      const SettingsScreen(),
+    ];
+
+    return Scaffold(
+      body: pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
+      ),
     );
   }
 }
